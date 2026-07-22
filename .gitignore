@@ -1,0 +1,4 @@
+__pycache__
+.venv
+appointment_monitor.sqlite3
+.DS_Store
