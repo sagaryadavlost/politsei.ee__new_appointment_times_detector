@@ -76,17 +76,27 @@ class MonitorTests(unittest.TestCase):
             self.ids["tallinn"],
         )
 
-    def test_overall_improves_triggers_one_alarm_no_duplicate(self):
+    def test_overall_improves_earlier_than_target_date_triggers_alarm(self):
         api = FakeApi([
-            dates_for(self.ids, ["2026-09-21"], ["2026-09-18"], ["2026-09-25"], ["2026-09-20"]),
-            dates_for(self.ids, ["2026-09-21"], ["2026-09-12"], ["2026-09-25"], ["2026-09-20"]),
-            dates_for(self.ids, ["2026-09-21"], ["2026-09-12"], ["2026-09-25"], ["2026-09-20"]),
+            dates_for(self.ids, ["2026-08-15"], ["2026-08-03"], ["2026-08-25"], ["2026-08-20"]),
+            dates_for(self.ids, ["2026-08-15"], ["2026-08-01"], ["2026-08-25"], ["2026-08-20"]),
+            dates_for(self.ids, ["2026-08-15"], ["2026-08-01"], ["2026-08-25"], ["2026-08-20"]),
         ])
         run_batch(api, self.db)
         improved = run_batch(api, self.db)
         same = run_batch(api, self.db)
         self.assertTrue(improved.alarm_triggered)
         self.assertFalse(same.alarm_triggered)
+        self.assertEqual(event_types(self.db).count("NEW_EARLIER_OVERALL"), 1)
+
+    def test_overall_improves_but_not_earlier_than_target_date_does_not_trigger_alarm(self):
+        api = FakeApi([
+            dates_for(self.ids, ["2026-09-21"], ["2026-09-18"], ["2026-09-25"], ["2026-09-20"]),
+            dates_for(self.ids, ["2026-09-21"], ["2026-08-04"], ["2026-09-25"], ["2026-09-20"]),
+        ])
+        run_batch(api, self.db)
+        improved = run_batch(api, self.db)
+        self.assertFalse(improved.alarm_triggered)
         self.assertEqual(event_types(self.db).count("NEW_EARLIER_OVERALL"), 1)
 
     def test_overall_later_logs_without_alarm(self):
@@ -151,11 +161,11 @@ class MonitorTests(unittest.TestCase):
         self.assertEqual(outcome.overall_earliest_date, date(2026, 9, 18))
 
     def test_restart_uses_saved_state_for_alarm(self):
-        api1 = FakeApi([dates_for(self.ids, ["2026-09-21"], ["2026-09-18"], ["2026-09-25"], ["2026-09-20"])])
+        api1 = FakeApi([dates_for(self.ids, ["2026-08-15"], ["2026-08-03"], ["2026-08-25"], ["2026-08-20"])])
         run_batch(api1, self.db)
         self.db.conn.close()
         db2 = Database(self.db_path)
-        api2 = FakeApi([dates_for(self.ids, ["2026-09-21"], ["2026-09-12"], ["2026-09-25"], ["2026-09-20"])])
+        api2 = FakeApi([dates_for(self.ids, ["2026-08-15"], ["2026-08-01"], ["2026-08-25"], ["2026-08-20"])])
         outcome = run_batch(api2, db2)
         db2.conn.close()
         self.assertTrue(outcome.alarm_triggered)

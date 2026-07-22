@@ -17,11 +17,13 @@ class AppointmentMonitor:
         api_client: AppointmentApiClient | None = None,
         request_delay_seconds: float = config.OFFICE_REQUEST_DELAY_SECONDS,
         progress_callback: Callable[[str], None] | None = None,
+        target_date: datetime | date | None = None,
     ) -> None:
         self.db = db
         self.api_client = api_client or AppointmentApiClient()
         self.request_delay_seconds = request_delay_seconds
         self.progress_callback = progress_callback
+        self.target_date = target_date if target_date is not None else config.TARGET_APPOINTMENT_DATE
 
     def run_check(self) -> CheckOutcome:
         checked_at = datetime.now()
@@ -154,6 +156,7 @@ class AppointmentMonitor:
 
         if overall_date is not None and (previous_overall is None or overall_date < previous_overall):
             office_name = next((r.name for r in results if r.office_id == overall_office_id), "Unknown office")
+            should_alarm = self.target_date is None or overall_date < self.target_date
             self.db.insert_event(
                 "NEW_EARLIER_OVERALL",
                 checked_at,
@@ -161,9 +164,9 @@ class AppointmentMonitor:
                 office_id=overall_office_id,
                 old_overall_date=previous_overall,
                 new_overall_date=overall_date,
-                alarm_triggered=True,
+                alarm_triggered=should_alarm,
             )
-            alarm_triggered = True
+            alarm_triggered = should_alarm
         elif previous_overall is not None and (overall_date is None or overall_date > previous_overall):
             self.db.insert_event(
                 "EARLIEST_DISAPPEARED",

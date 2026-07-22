@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import date
 import os
 
 
@@ -6,6 +7,9 @@ APP_NAME = "Appointment Monitor"
 DEFAULT_INTERVAL_SECONDS = 15 * 60
 REQUEST_TIMEOUT_SECONDS = 20
 OFFICE_REQUEST_DELAY_SECONDS = 5
+
+# Target booked appointment date. Alarm only triggers if a date earlier than this is found.
+TARGET_APPOINTMENT_DATE = date(2026, 8, 4)
 
 SERVICE_PUBLIC_ID = "3af778a300a86b1d0cb5556f993ab98adfa1a9debaac3c231026c5cb8425fce2"
 CUSTOM_SLOT_LENGTH = 120

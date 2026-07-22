@@ -93,6 +93,8 @@ class AppointmentApp:
         ttk.Label(overall, text="OVERALL EARLIEST APPOINTMENT", style="Muted.TLabel").pack(anchor="w")
         ttk.Label(overall, textvariable=self.overall_var, style="Overall.TLabel").pack(anchor="w", pady=(8, 0))
         ttk.Label(overall, textvariable=self.overall_office_var, style="Body.TLabel").pack(anchor="w")
+        target_str = config.TARGET_APPOINTMENT_DATE.strftime("%d %B %Y")
+        ttk.Label(overall, text=f"Alarm condition: Only alerts for dates earlier than {target_str}", style="Muted.TLabel").pack(anchor="w", pady=(4, 0))
         self.alert_label = ttk.Label(overall, textvariable=self.alert_var, style="Alert.TLabel", padding=10)
 
         offices_frame = ttk.Frame(dashboard)
