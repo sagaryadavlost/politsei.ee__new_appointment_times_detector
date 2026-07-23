@@ -162,10 +162,20 @@ class AppointmentApp:
             elif event.num == 5:
                 canvas.yview_scroll(3, "units")
             elif hasattr(event, "delta") and event.delta:
-                # macOS Aqua Tk trackpad sends delta where negative is scroll down (natural scrolling)
-                # canvas.yview_scroll takes positive numbers to scroll down, negative to scroll up
-                units = -1 * event.delta
-                canvas.yview_scroll(int(units), "units")
+                # On macOS Aqua Tk:
+                # Scroll wheel sends delta +/- 1, 2, 3... or 120
+                # Trackpad sends delta as floats/ints
+                # Positive delta = trackpad swipe down / wheel up (scroll content down -> move view up)
+                # Negative delta = trackpad swipe up / wheel down (scroll content up -> move view down)
+                delta = event.delta
+                if abs(delta) >= 120:
+                    step = -int(delta / 120 * 3)
+                elif abs(delta) >= 1:
+                    step = -int(delta)
+                else:
+                    step = -1 if delta > 0 else 1
+                if step != 0:
+                    canvas.yview_scroll(step, "units")
 
         def bind_recursive(widget) -> None:
             widget.bind("<MouseWheel>", on_mousewheel, add="+")
