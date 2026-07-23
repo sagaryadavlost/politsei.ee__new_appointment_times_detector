@@ -155,40 +155,30 @@ class AppointmentApp:
             canvas.itemconfigure(window_id, width=event.width)
 
         def on_mousewheel(event) -> None:
+            # Check if canvas is currently visible in active tab
+            if not canvas.winfo_ismapped():
+                return
             if event.num == 4:
-                canvas.yview_scroll(-1, "units")
+                canvas.yview_scroll(-3, "units")
             elif event.num == 5:
-                canvas.yview_scroll(1, "units")
-            elif event.delta:
-                # macOS trackpads / mice send delta directly
-                if abs(event.delta) >= 120:
-                    units = int(-1 * (event.delta / 120))
+                canvas.yview_scroll(3, "units")
+            elif hasattr(event, "delta") and event.delta:
+                # macOS Aqua Tk trackpad delta
+                delta = event.delta
+                if abs(delta) >= 120:
+                    units = int(-1 * (delta / 120) * 3)
                 else:
-                    units = -1 if event.delta > 0 else 1
-                canvas.yview_scroll(units, "units")
-
-        def bind_mousewheel_recursive(widget) -> None:
-            widget.bind("<MouseWheel>", on_mousewheel, add="+")
-            widget.bind("<Button-4>", on_mousewheel, add="+")
-            widget.bind("<Button-5>", on_mousewheel, add="+")
-            for child in widget.winfo_children():
-                bind_mousewheel_recursive(child)
-
-        def on_enter(_event) -> None:
-            bind_mousewheel_recursive(content)
-            canvas.bind_all("<MouseWheel>", on_mousewheel)
-            canvas.bind_all("<Button-4>", on_mousewheel)
-            canvas.bind_all("<Button-5>", on_mousewheel)
-
-        def on_leave(_event) -> None:
-            canvas.unbind_all("<MouseWheel>")
-            canvas.unbind_all("<Button-4>")
-            canvas.unbind_all("<Button-5>")
+                    units = int(-1 * delta) if delta != 0 else 0
+                if units != 0:
+                    canvas.yview_scroll(units, "units")
 
         content.bind("<Configure>", update_scroll_region)
         canvas.bind("<Configure>", match_canvas_width)
-        canvas.bind("<Enter>", on_enter)
-        canvas.bind("<Leave>", on_leave)
+
+        # Bind mousewheel to root so anywhere mouse is clicked or hovered on dashboard tab scrolls
+        self.root.bind_all("<MouseWheel>", on_mousewheel, add="+")
+        self.root.bind_all("<Button-4>", on_mousewheel, add="+")
+        self.root.bind_all("<Button-5>", on_mousewheel, add="+")
 
         canvas.configure(yscrollcommand=scrollbar.set)
         canvas.pack(side=LEFT, fill=BOTH, expand=True)
