@@ -171,6 +171,15 @@ class AppointmentApp:
             office = next((o for o in self.db.offices() if o["id"] == state["overall_office_id"]), None)
             self.overall_office_var.set(office["name"] if office else "")
 
+        for office_row in self.db.offices():
+            office_id = office_row["id"]
+            snapshot = self.db.latest_success_snapshot_for_office(office_id)
+            if snapshot and snapshot["earliest_date"]:
+                earliest_d = datetime.strptime(snapshot["earliest_date"], "%Y-%m-%d").date()
+                if office_id in self.office_vars:
+                    self.office_vars[office_id]["earliest"].set(f"Earliest available: {self._format_date(earliest_d)}")
+                    self.office_vars[office_id]["status"].set("Status: Idle")
+
     def check_now(self) -> None:
         if self.checking:
             self.status_var.set("A request check is already running.")
@@ -222,8 +231,17 @@ class AppointmentApp:
 
         for result in outcome.results:
             values = self.office_vars[result.office_id]
-            values["earliest"].set(f"Earliest available: {self._format_date(result.earliest) if result.earliest else 'None'}")
-            values["status"].set(f"Status: {result.status}")
+            if result.success:
+                values["earliest"].set(f"Earliest available: {self._format_date(result.earliest) if result.earliest else 'None'}")
+                values["status"].set(f"Status: {result.status}")
+            else:
+                snapshot = self.db.latest_success_snapshot_for_office(result.office_id)
+                if snapshot and snapshot["earliest_date"]:
+                    earliest_d = datetime.strptime(snapshot["earliest_date"], "%Y-%m-%d").date()
+                    values["earliest"].set(f"Earliest available: {self._format_date(earliest_d)} (Preserved from previous check)")
+                else:
+                    values["earliest"].set("Earliest available: None")
+                values["status"].set(f"Status: {result.status}")
 
         if outcome.overall_earliest_date:
             self.overall_var.set(self._format_date(outcome.overall_earliest_date))
