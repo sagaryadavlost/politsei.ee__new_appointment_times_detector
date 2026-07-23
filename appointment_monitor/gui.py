@@ -30,6 +30,7 @@ class AppointmentApp:
 
         self.status_var = StringVar(value="Starting")
         self.last_checked_var = StringVar(value="Not checked yet")
+        self.last_successful_checked_var = StringVar(value="Not checked yet")
         self.countdown_var = StringVar(value="--:--")
         self.monitoring_var = StringVar(value="● ACTIVE")
         self.overall_var = StringVar(value="Loading...")
@@ -82,9 +83,11 @@ class AppointmentApp:
         top = ttk.Frame(dashboard, style="Card.TFrame", padding=16)
         top.pack(fill=X)
         ttk.Label(top, text="Monitoring status:", style="Muted.TLabel").pack(side=LEFT)
-        ttk.Label(top, textvariable=self.monitoring_var, style="Body.TLabel").pack(side=LEFT, padx=(8, 24))
+        ttk.Label(top, textvariable=self.monitoring_var, style="Body.TLabel").pack(side=LEFT, padx=(8, 16))
         ttk.Label(top, text="Last checked:", style="Muted.TLabel").pack(side=LEFT)
-        ttk.Label(top, textvariable=self.last_checked_var, style="Body.TLabel").pack(side=LEFT, padx=(8, 24))
+        ttk.Label(top, textvariable=self.last_checked_var, style="Body.TLabel").pack(side=LEFT, padx=(8, 16))
+        ttk.Label(top, text="Last successful check:", style="Muted.TLabel").pack(side=LEFT)
+        ttk.Label(top, textvariable=self.last_successful_checked_var, style="Body.TLabel").pack(side=LEFT, padx=(8, 16))
         ttk.Label(top, text="Next automatic check:", style="Muted.TLabel").pack(side=LEFT)
         ttk.Label(top, textvariable=self.countdown_var, style="Body.TLabel").pack(side=LEFT, padx=(8, 0))
 
@@ -166,6 +169,9 @@ class AppointmentApp:
 
     def _load_previous_state(self) -> None:
         state = self.db.latest_successful_state()
+        if state["check"]:
+            checked_at = datetime.fromisoformat(state["check"]["checked_at"])
+            self.last_successful_checked_var.set(checked_at.strftime("%d %B %Y %H:%M:%S"))
         if state["overall_date"]:
             self.overall_var.set(self._format_date(state["overall_date"]))
             office = next((o for o in self.db.offices() if o["id"] == state["overall_office_id"]), None)
@@ -225,6 +231,8 @@ class AppointmentApp:
 
         self.checking = False
         self.last_checked_var.set(outcome.checked_at.strftime("%d %B %Y %H:%M:%S"))
+        if any(r.success for r in outcome.results):
+            self.last_successful_checked_var.set(outcome.checked_at.strftime("%d %B %Y %H:%M:%S"))
         self.next_check_at = datetime.now() + timedelta(seconds=self.interval_seconds)
         self.monitoring_var.set("● PAUSED" if self.paused else "● ACTIVE")
         self.status_var.set(outcome.status_message)
