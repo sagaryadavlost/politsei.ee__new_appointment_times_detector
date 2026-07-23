@@ -155,7 +155,6 @@ class AppointmentApp:
             canvas.itemconfigure(window_id, width=event.width)
 
         def on_mousewheel(event) -> None:
-            # Check if canvas is currently visible in active tab
             if not canvas.winfo_ismapped():
                 return
             if event.num == 4:
@@ -163,19 +162,21 @@ class AppointmentApp:
             elif event.num == 5:
                 canvas.yview_scroll(3, "units")
             elif hasattr(event, "delta") and event.delta:
-                # macOS Aqua Tk trackpad delta
-                delta = event.delta
-                if abs(delta) >= 120:
-                    units = int(-1 * (delta / 120) * 3)
-                else:
-                    units = int(-1 * delta) if delta != 0 else 0
-                if units != 0:
-                    canvas.yview_scroll(units, "units")
+                # macOS Aqua Tk trackpad sends delta where negative is scroll down (natural scrolling)
+                # canvas.yview_scroll takes positive numbers to scroll down, negative to scroll up
+                units = -1 * event.delta
+                canvas.yview_scroll(int(units), "units")
 
-        content.bind("<Configure>", update_scroll_region)
+        def bind_recursive(widget) -> None:
+            widget.bind("<MouseWheel>", on_mousewheel, add="+")
+            widget.bind("<Button-4>", on_mousewheel, add="+")
+            widget.bind("<Button-5>", on_mousewheel, add="+")
+            for child in widget.winfo_children():
+                bind_recursive(child)
+
+        content.bind("<Configure>", lambda e: (update_scroll_region(e), bind_recursive(content)))
         canvas.bind("<Configure>", match_canvas_width)
 
-        # Bind mousewheel to root so anywhere mouse is clicked or hovered on dashboard tab scrolls
         self.root.bind_all("<MouseWheel>", on_mousewheel, add="+")
         self.root.bind_all("<Button-4>", on_mousewheel, add="+")
         self.root.bind_all("<Button-5>", on_mousewheel, add="+")
