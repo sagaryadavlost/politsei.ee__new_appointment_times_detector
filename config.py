@@ -9,7 +9,7 @@ REQUEST_TIMEOUT_SECONDS = 20
 OFFICE_REQUEST_DELAY_SECONDS = 5
 
 # Target booked appointment date. Alarm only triggers if a date earlier than this is found.
-TARGET_APPOINTMENT_DATE = date(2026, 11, 30)
+TARGET_APPOINTMENT_DATE = date(2026, 10, 12)
 
 SERVICE_PUBLIC_ID = "3af778a300a86b1d0cb5556f993ab98adfa1a9debaac3c231026c5cb8425fce2"
 CUSTOM_SLOT_LENGTH = 120
