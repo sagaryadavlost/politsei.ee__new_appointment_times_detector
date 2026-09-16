@@ -71,7 +71,9 @@ class AppointmentMonitor:
             overall_office_id = previous["overall_office_id"]
 
         check_id = self.db.insert_check(checked_at, results, overall_date, overall_office_id)
-        alarm = self._record_events(checked_at, previous, results, overall_date, overall_office_id, last_success_by_office)
+        alarm, alarm_cleared = self._record_events(
+            checked_at, previous, results, overall_date, overall_office_id, last_success_by_office
+        )
 
         failures = [result for result in results if not result.success]
         if len(failures) == len(results):
@@ -97,6 +99,7 @@ class AppointmentMonitor:
             overall_earliest_date=overall_date,
             overall_earliest_office_id=overall_office_id,
             alarm_triggered=alarm,
+            alarm_cleared=alarm_cleared,
             alert_title=alert_title,
             alert_message=alert_message,
             status_message=status,
@@ -122,11 +125,12 @@ class AppointmentMonitor:
             return None, None
         return min(candidates, key=lambda item: item[0])
 
-    def _record_events(self, checked_at, previous, results, overall_date, overall_office_id, last_success_by_office) -> bool:
+    def _record_events(self, checked_at, previous, results, overall_date, overall_office_id, last_success_by_office) -> tuple[bool, bool]:
         previous_check = previous["check"]
         previous_overall = previous["overall_date"]
         previous_dates_by_office = previous["office_dates"]
         alarm_triggered = False
+        alarm_cleared = False
 
         for result in results:
             if not result.success:
@@ -148,11 +152,11 @@ class AppointmentMonitor:
                     )
 
         if previous_check is None:
-            return False
+            return False, False
 
         successful_results = [result for result in results if result.success]
         if not successful_results:
-            return False
+            return False, False
 
         if overall_date is not None and (previous_overall is None or overall_date < previous_overall):
             office_name = next((r.name for r in results if r.office_id == overall_office_id), "Unknown office")
@@ -176,6 +180,7 @@ class AppointmentMonitor:
                 old_overall_date=previous_overall,
                 new_overall_date=overall_date,
             )
+            alarm_cleared = True
 
         for result in successful_results:
             old_dates = previous_dates_by_office.get(result.office_id, set())
@@ -211,7 +216,7 @@ class AppointmentMonitor:
             for removed in sorted(old_dates - new_dates):
                 self.db.insert_event("DATE_REMOVED", checked_at, f"{result.name}: date removed {removed}.", result.office_id, old_date=removed)
 
-        return alarm_triggered
+        return alarm_triggered, alarm_cleared
 
     def _progress(self, message: str) -> None:
         if self.progress_callback:

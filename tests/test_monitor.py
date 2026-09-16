@@ -107,7 +107,29 @@ class MonitorTests(unittest.TestCase):
         run_batch(api, self.db)
         later = run_batch(api, self.db)
         self.assertFalse(later.alarm_triggered)
+        self.assertTrue(later.alarm_cleared)
         self.assertIn("EARLIEST_DISAPPEARED", event_types(self.db))
+
+    def test_better_time_disappearing_clears_alarm_and_keeps_monitoring(self):
+        api = FakeApi([
+            dates_for(self.ids, ["2026-08-15"], ["2026-08-03"], ["2026-08-25"], ["2026-08-20"]),
+            dates_for(self.ids, ["2026-08-15"], ["2026-08-01"], ["2026-08-25"], ["2026-08-20"]),
+            dates_for(self.ids, ["2026-08-15"], ["2026-08-03"], ["2026-08-25"], ["2026-08-20"]),
+            dates_for(self.ids, ["2026-08-15"], ["2026-07-30"], ["2026-08-25"], ["2026-08-20"]),
+        ])
+        run_batch(api, self.db)
+        improved = run_batch(api, self.db)
+        disappeared = run_batch(api, self.db)
+        improved_again = run_batch(api, self.db)
+        self.assertTrue(improved.alarm_triggered)
+        self.assertFalse(improved.alarm_cleared)
+        self.assertFalse(disappeared.alarm_triggered)
+        self.assertTrue(disappeared.alarm_cleared)
+        self.assertEqual(disappeared.overall_earliest_date, date(2026, 8, 3))
+        self.assertTrue(improved_again.alarm_triggered)
+        self.assertFalse(improved_again.alarm_cleared)
+        self.assertEqual(event_types(self.db).count("EARLIEST_DISAPPEARED"), 1)
+        self.assertEqual(event_types(self.db).count("NEW_EARLIER_OVERALL"), 2)
 
     def test_office_improves_but_overall_unchanged_no_alarm(self):
         api = FakeApi([

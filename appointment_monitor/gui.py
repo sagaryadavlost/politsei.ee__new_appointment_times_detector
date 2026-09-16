@@ -137,6 +137,7 @@ class AppointmentApp:
         ]:
             self.history_tree.heading(col, text=title)
             self.history_tree.column(col, width=width, anchor="w")
+        self.history_tree.tag_configure("disappeared", background="#ffd6d6")
         self.history_tree.pack(fill=BOTH, expand=True, pady=(10, 0))
         self.history_tree.bind("<Command-c>", self.copy_selected_history)
         self.history_tree.bind("<Control-c>", self.copy_selected_history)
@@ -293,6 +294,8 @@ class AppointmentApp:
             self.alert_label.pack(fill=X, pady=(12, 0))
             self.alarm.notify(config.APP_NAME, outcome.alert_message or "New earlier appointment")
             self.alarm.start()
+        elif outcome.alarm_cleared:
+            self.stop_alarm()
 
         self.refresh_history()
         self.root.after(250, self._poll_queue)
@@ -325,7 +328,9 @@ class AppointmentApp:
 
         for item in self.history_tree.get_children():
             self.history_tree.delete(item)
+        disappeared_types = {"EARLIEST_DISAPPEARED", "OFFICE_LATER", "DATE_REMOVED"}
         for event in self.db.recent_events(office_id=office_id, event_types=event_types):
+            tags = ("disappeared",) if event["event_type"] in disappeared_types else ()
             self.history_tree.insert(
                 "",
                 "end",
@@ -336,6 +341,7 @@ class AppointmentApp:
                     event["description"],
                     "Yes" if event["alarm_triggered"] else "No",
                 ),
+                tags=tags,
             )
 
     def copy_selected_history(self, event=None) -> str:

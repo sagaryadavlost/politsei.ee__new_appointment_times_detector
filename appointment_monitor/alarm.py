@@ -13,6 +13,7 @@ class AlarmManager:
     def __init__(self) -> None:
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
+        self._player: subprocess.Popen | None = None
 
     def start(self) -> None:
         self.stop()
@@ -22,6 +23,7 @@ class AlarmManager:
 
     def stop(self) -> None:
         self._stop.set()
+        self._stop_player()
         self._thread = None
 
     def test(self) -> None:
@@ -47,10 +49,10 @@ class AlarmManager:
             if platform.system() == "Darwin":
                 # afplay on macOS can play MP3, AIFF, WAV, etc.
                 if os.path.exists(sound_file):
-                    subprocess.run(["afplay", sound_file], check=False)
+                    self._play(["afplay", sound_file])
                 else:
                     # Fallback to system sound
-                    subprocess.run(["afplay", "/System/Library/Sounds/Glass.aiff"], check=False)
+                    self._play(["afplay", "/System/Library/Sounds/Glass.aiff"])
             else:
                 # On Linux/Windows, try to use available players for MP3
                 if os.path.exists(sound_file):
@@ -65,6 +67,29 @@ class AlarmManager:
                     break
                 time.sleep(0.5)
 
+    def _play(self, command: list[str]) -> None:
+        try:
+            self._player = subprocess.Popen(command)
+            while self._player.poll() is None:
+                if self._stop.is_set():
+                    self._stop_player()
+                    return
+                time.sleep(0.1)
+        except FileNotFoundError:
+            return
+        finally:
+            self._player = None
+
+    def _stop_player(self) -> None:
+        player = self._player
+        if player is None or player.poll() is not None:
+            return
+        player.terminate()
+        try:
+            player.wait(timeout=1)
+        except subprocess.TimeoutExpired:
+            player.kill()
+
     def _play_sound_cross_platform(self, sound_file: str) -> None:
         """Play sound file on Linux/Windows using available players."""
         system = platform.system()
@@ -73,16 +98,16 @@ class AlarmManager:
                 # Try common Linux audio players
                 for player in ["mpg123", "ffplay", "aplay", "paplay"]:
                     try:
-                        subprocess.run([player, sound_file], check=False, timeout=2)
+                        self._play([player, sound_file])
                         return
-                    except (FileNotFoundError, subprocess.TimeoutExpired):
+                    except FileNotFoundError:
                         continue
             elif system == "Windows":
                 # Use Windows built-in media player via PowerShell
-                subprocess.run([
+                self._play([
                     "powershell", "-c",
                     f'(New-Object Media.SoundPlayer "{sound_file}").PlaySync()'
-                ], check=False, timeout=5)
+                ])
         except Exception:
             # Ultimate fallback
             print("\a", end="", flush=True)

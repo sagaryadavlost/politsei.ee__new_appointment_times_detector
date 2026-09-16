@@ -30,6 +30,7 @@ class CheckOutcome:
     overall_earliest_date: date | None
     overall_earliest_office_id: int | None
     alarm_triggered: bool
+    alarm_cleared: bool
     alert_title: str | None
     alert_message: str | None
     status_message: str
