@@ -4,9 +4,12 @@ import os
 
 
 APP_NAME = "Appointment Monitor"
+# Wait this long after a completed check before starting the next automatic round (4 minutes).
 DEFAULT_INTERVAL_SECONDS = 4 * 60
+# Give up on a single office HTTP request after this many seconds and continue with the others.
 REQUEST_TIMEOUT_SECONDS = 20
-OFFICE_REQUEST_DELAY_SECONDS = 5
+# Pause between office requests inside one check so all four are not sent at once.
+OFFICE_REQUEST_DELAY_SECONDS = 1
 
 # Target booked appointment date. Alarm only triggers if a date earlier than this is found.
 TARGET_APPOINTMENT_DATE = date(2026, 10, 2)
