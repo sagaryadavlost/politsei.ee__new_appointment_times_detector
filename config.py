@@ -4,10 +4,10 @@ import os
 
 
 APP_NAME = "Appointment Monitor"
-# Wait this long after a completed check before starting the next automatic round (4 minutes).
-DEFAULT_INTERVAL_SECONDS = 4 * 60
+# Wait this long after a completed check before starting the next automatic round (1 minute).
+DEFAULT_INTERVAL_SECONDS = 1 * 60
 # Give up on a single office HTTP request after this many seconds and continue with the others.
-REQUEST_TIMEOUT_SECONDS = 20
+REQUEST_TIMEOUT_SECONDS = 12
 # Pause between office requests inside one check so all four are not sent at once.
 OFFICE_REQUEST_DELAY_SECONDS = 1
 
